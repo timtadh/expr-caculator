@@ -106,19 +106,7 @@ var Patterns []*lex.Pattern = []*lex.Pattern{
     },
   },
   &lex.Pattern{
-    "\t+",
-    func(match []byte)(bool, lex.Token) {
-        return false, nil
-    },
-  },
-  &lex.Pattern{
-    "\n+",
-    func(match []byte)(bool, lex.Token) {
-        return false, nil
-    },
-  },
-  &lex.Pattern{
-    " +",
+    "(\t|\n| )+",
     func(match []byte)(bool, lex.Token) {
         return false, nil
     },
