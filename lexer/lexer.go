@@ -10,12 +10,12 @@ const (
 
 var rtokens []string = []string{
     "NUMBER", "PLUS", "DASH", "STAR", "SLASH", "LPAREN", "RPAREN" }
-var tokens map[string]int
+var Tokens map[string]int
 
 func init() {
-    tokens = make(map[string]int)
+    Tokens = make(map[string]int)
     for i, token := range rtokens {
-        tokens[token] = i
+        Tokens[token] = i
     }
 }
 
@@ -38,6 +38,14 @@ func (self *Attr) String() string {
     return "<Attribute>"
 }
 
+func (self *Attr) StringValue() string {
+    return fmt.Sprintf("%v", self.value)
+}
+
+func (self *Attr) Value() int {
+    return self.value
+}
+
 func (self *Token) Name() string {
     return rtokens[self.id]
 }
@@ -58,43 +66,43 @@ var Patterns []*lex.Pattern = []*lex.Pattern{
         if err != nil {
             panic(err)
         }
-        return true, &Token{tokens["NUMBER"], &Attr{int(i), true}}
+        return true, &Token{Tokens["NUMBER"], &Attr{int(i), true}}
     },
   },
   &lex.Pattern{
     "\\+",
     func(match []byte)(bool, lex.Token) {
-        return true, &Token{tokens["PLUS"], &Attr{0, false}}
+        return true, &Token{Tokens["PLUS"], &Attr{0, false}}
     },
   },
   &lex.Pattern{
     "-",
     func(match []byte)(bool, lex.Token) {
-        return true, &Token{tokens["DASH"], &Attr{0, false}}
+        return true, &Token{Tokens["DASH"], &Attr{0, false}}
     },
   },
   &lex.Pattern{
     "\\*",
     func(match []byte)(bool, lex.Token) {
-        return true, &Token{tokens["STAR"], &Attr{0, false}}
+        return true, &Token{Tokens["STAR"], &Attr{0, false}}
     },
   },
   &lex.Pattern{
     "/",
     func(match []byte)(bool, lex.Token) {
-        return true, &Token{tokens["SLASH"], &Attr{0, false}}
+        return true, &Token{Tokens["SLASH"], &Attr{0, false}}
     },
   },
   &lex.Pattern{
     "\\(",
     func(match []byte)(bool, lex.Token) {
-        return true, &Token{tokens["LPAREN"], &Attr{0, false}}
+        return true, &Token{Tokens["LPAREN"], &Attr{0, false}}
     },
   },
   &lex.Pattern{
     "\\)",
     func(match []byte)(bool, lex.Token) {
-        return true, &Token{tokens["RPAREN"], &Attr{0, false}}
+        return true, &Token{Tokens["RPAREN"], &Attr{0, false}}
     },
   },
   &lex.Pattern{
