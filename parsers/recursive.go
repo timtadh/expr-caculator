@@ -32,8 +32,8 @@ func Recursive(text []byte) (bool, ast.Node) {
         n := ast.New("Expr")
         var ok1, ok2 bool
         var r0,r1 ast.Node
-        ok1, i, r0 = Term(i)
-        ok2, i, r1 = Expr_(i)
+        ok1, i, r0 = Term(i)                              // Expr : Term . Expr_
+        ok2, i, r1 = Expr_(i)                             // Expr : Term Expr_ .
         return ok1&&ok2, i, n.AddKid(r0).AddKid(r1)
     }
 
@@ -42,23 +42,23 @@ func Recursive(text []byte) (bool, ast.Node) {
          * Expr_ : DASH Term Expr_
          * Expr_ : e (the empty string) */
         n := ast.New("Expr_")
-        if i >= len(tokens) {                   // Expr_ : e .
+        if i >= len(tokens) {                             // Expr_ : e .
             return true, i, n.AddKid(ast.New("e"))
         }
         a := tokens[i].ID()
-        if a == lexer.Tokens["PLUS"] {          // Expr_ : PLUS . Term Expr_
+        if a == lexer.Tokens["PLUS"] {                    // Expr_ : PLUS . Term Expr_
             i += 1
             n.AddKid(ast.New("+"))
-        } else if a == lexer.Tokens["DASH"] {   // Expr_ : DASH . Term Expr_
+        } else if a == lexer.Tokens["DASH"] {             // Expr_ : DASH . Term Expr_
             i += 1
             n.AddKid(ast.New("-"))
         } else {
-            return true, i, n.AddKid(ast.New("e"))    // Expr_ : e .
+            return true, i, n.AddKid(ast.New("e"))        // Expr_ : e .
         }
         var ok1, ok2 bool
         var r0,r1 ast.Node
-        ok1, i, r0 = Term(i)                        // Expr_ : (PLUS|DASH) Term . Expr_
-        ok2, i, r1 = Expr_(i)                       // Expr_ : (PLUS|DASH) Term Expr_ .
+        ok1, i, r0 = Term(i)                              // Expr_ : (PLUS|DASH) Term . Expr_
+        ok2, i, r1 = Expr_(i)                             // Expr_ : (PLUS|DASH) Term Expr_ .
         return ok1&&ok2, i, n.AddKid(r0).AddKid(r1)
     }
 
@@ -67,8 +67,8 @@ func Recursive(text []byte) (bool, ast.Node) {
         n := ast.New("Term")
         var ok1, ok2 bool
         var r0,r1 ast.Node
-        ok1, i, r0 = Factor(i)
-        ok2, i, r1 = Term_(i)
+        ok1, i, r0 = Factor(i)                            // Term : Factor . Term_
+        ok2, i, r1 = Term_(i)                             // Term : Facttor Term_ .
         return ok1&&ok2, i, n.AddKid(r0).AddKid(r1)
     }
 
@@ -77,23 +77,23 @@ func Recursive(text []byte) (bool, ast.Node) {
          * Term_ : SLASH Factor Term_
          * Term_ : e (the empty string) */
         n := ast.New("Term_")
-        if i >= len(tokens) {                   // Term_ : e .
+        if i >= len(tokens) {                             // Term_ : e .
             return true, i, n.AddKid(ast.New("e"))
         }
         a := tokens[i].ID()
-        if a == lexer.Tokens["STAR"] {          // Term_ : STAR . Factor Term_
+        if a == lexer.Tokens["STAR"] {                    // Term_ : STAR . Factor Term_
             i += 1
             n.AddKid(ast.New("*"))
-        } else if a == lexer.Tokens["SLASH"] {  // Term_ : SLASH . Factor Term_
+        } else if a == lexer.Tokens["SLASH"] {            // Term_ : SLASH . Factor Term_
             i += 1
             n.AddKid(ast.New("/"))
         } else {
-            return true, i, n.AddKid(ast.New("e"))    // Term_ : e .
+            return true, i, n.AddKid(ast.New("e"))        // Term_ : e .
         }
         var ok1, ok2 bool
         var r0,r1 ast.Node
-        ok1, i, r0 = Factor(i)                      // Term_ : (STAR|SLASH) Factor . Term_
-        ok2, i, r1 = Term_(i)                       // Term_ : (STAR|SLASH) Factor Term_ .
+        ok1, i, r0 = Factor(i)                            // Term_ : (STAR|SLASH) Factor . Term_
+        ok2, i, r1 = Term_(i)                             // Term_ : (STAR|SLASH) Factor Term_ .
         return ok1&&ok2, i, n.AddKid(r0).AddKid(r1)
     }
 
@@ -107,14 +107,14 @@ func Recursive(text []byte) (bool, ast.Node) {
         }
         n := ast.New("Factor")
         a := tokens[i].ID()
-        if a == lexer.Tokens["NUMBER"] {        // Factor : NUMBER .
+        if a == lexer.Tokens["NUMBER"] {                  // Factor : NUMBER .
             label := tokens[i].Attribute().(*lexer.Attr).StringValue()
             i += 1
             n.AddKid(ast.New(label))
-        } else if a == lexer.Tokens["DASH"] {   // Factor : DASH . NUMBER
+        } else if a == lexer.Tokens["DASH"] {             // Factor : DASH . NUMBER
             i += 1
             a := tokens[i].ID()
-            if a == lexer.Tokens["NUMBER"] {    // Factor : DASH NUMBER .
+            if a == lexer.Tokens["NUMBER"] {              // Factor : DASH NUMBER .
                 label := tokens[i].Attribute().(*lexer.Attr).StringValue()
                 i += 1
                 n.AddKid(ast.New("-"))
@@ -123,16 +123,16 @@ func Recursive(text []byte) (bool, ast.Node) {
                 fmt.Fprintln(os.Stderr, "Expected a NUMBER")
                 return false, i, n
             }
-        } else if a == lexer.Tokens["LPAREN"] { // Factor : LPAREN . Expr RPAREN
+        } else if a == lexer.Tokens["LPAREN"] {           // Factor : LPAREN . Expr RPAREN
             i += 1
             var ok bool
             var r0 ast.Node
-            ok, i, r0 = Expr(i)                    // Factor : LPAREN Expr . RPAREN
+              ok, i, r0 = Expr(i)                         // Factor : LPAREN Expr . RPAREN
             if !ok {
                 return false, i, n
             }
             if i < len(tokens) &&
-               tokens[i].ID() == lexer.Tokens["RPAREN"] {    // Factor : LPAREN Expr RPAREN .
+               tokens[i].ID() == lexer.Tokens["RPAREN"] { // Factor : LPAREN Expr RPAREN .
                 i += 1
                 n.AddKid(ast.New("(")).AddKid(r0).AddKid(ast.New(")"))
             } else {
