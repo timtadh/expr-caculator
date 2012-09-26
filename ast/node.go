@@ -46,14 +46,22 @@ func (self *AstNode) AddKid(kid Node) Node {
 }
 
 func (self *AstNode) String() string {
-    s := fmt.Sprintf("%v:%v\n", len(self.children), self.label)
-    for _, kid := range self.children {
-        s += kid.String()
+    return String(self)
+}
+
+func (self *AstNode) Dotty() string {
+    return Dotty(self)
+}
+
+func String(self Node) string {
+    s := fmt.Sprintf("%v:%v\n", self.Kids(), self.Label())
+    for j := 0; j < self.Kids(); j++ {
+        s += self.GetKid(j).String()
     }
     return s
 }
 
-func (self *AstNode) Dotty() string {
+func Dotty(self Node) string {
     internal := "%v [shape=rect, label=\"%v\"];"
     leaf := "%v [shape=rect, label=\"%v\" style=\"filled\" fillcolor=\"#dddddd\"];"
     edge := "%v -> %v;"
