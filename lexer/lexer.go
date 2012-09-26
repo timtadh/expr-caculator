@@ -4,10 +4,6 @@ import "fmt"
 import "strconv"
 import "github.com/timtadh/lex"
 
-const (
-    HELLO = iota
-)
-
 var rtokens []string = []string{
     "NUMBER", "PLUS", "DASH", "STAR", "SLASH", "LPAREN", "RPAREN" }
 var Tokens map[string]int
