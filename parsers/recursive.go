@@ -1,25 +1,24 @@
 package parsers
 
-import "fmt"
-import "os"
-
 import "github.com/timtadh/lex"
 import "github.com/timtadh/expr-calculator/lexer"
 import "github.com/timtadh/expr-calculator/ast"
 
 type Parse func([]byte) (bool, ast.Node)
+type Errors []Error
+type Error string
 
-type production func(int)(bool, int, ast.Node)
+type production func()(bool, ast.Node)
 
-func Recursive(text []byte) (bool, ast.Node) {
-    success, tokchan := lex.Lex(lexer.Patterns, text)
-    tokens := make([]lex.Token, 0)
-    for token := range tokchan {
-        tokens = append(tokens, token)
-    }
-    if !(<-success) {
-        return false, nil
-    }
+func (self Error) String() string {
+    return string(self)
+}
+func (self Error) Error() string {
+    return string(self)
+}
+
+func Recursive(text []byte) (Errors, ast.Node) {
+    success, tokens := lex.Lex(lexer.Patterns, text)
 
     var Expr production
     var Expr_ production
@@ -27,129 +26,164 @@ func Recursive(text []byte) (bool, ast.Node) {
     var Term_ production
     var Factor production
 
-    Expr = func(i int) (bool, int, ast.Node) {
+    errors := make(Errors, 0)
+
+    var _top lex.Token
+    peak := func() (tok lex.Token, closed bool) {
+        if _top == nil {
+            if token, ok := <-tokens; !ok {
+                return nil, true
+            } else {
+                _top = token
+            }
+        }
+        return _top, false
+    }
+    consume := func() {
+        _top = nil
+    }
+
+    Expr = func() (bool, ast.Node) {
         // Expr : Term Expr_
         n := ast.New("Expr")
         var ok1, ok2 bool
         var r0,r1 ast.Node
-        ok1, i, r0 = Term(i)                              // Expr : Term . Expr_
-        ok2, i, r1 = Expr_(i)                             // Expr : Term Expr_ .
-        return ok1&&ok2, i, n.AddKid(r0).AddKid(r1)
+        ok1, r0 = Term()                              // Expr : Term . Expr_
+        ok2, r1 = Expr_()                             // Expr : Term Expr_ .
+        return ok1&&ok2, n.AddKid(r0).AddKid(r1)
     }
 
-    Expr_ = func(i int) (bool, int, ast.Node) {
+    Expr_ = func() (bool, ast.Node) {
         /* Expr_ : PLUS Term Expr_
          * Expr_ : DASH Term Expr_
          * Expr_ : e (the empty string) */
         n := ast.New("Expr_")
-        if i >= len(tokens) {                             // Expr_ : e .
-            return true, i, n.AddKid(ast.New("e"))
+        token, closed := peak()
+        if closed {                                       // Expr_ : e .
+            return true, n.AddKid(ast.New("e"))
         }
-        a := tokens[i].ID()
+        a := token.ID()
         if a == lexer.Tokens["PLUS"] {                    // Expr_ : PLUS . Term Expr_
-            i += 1
+            consume()
             n.AddKid(ast.New("+"))
         } else if a == lexer.Tokens["DASH"] {             // Expr_ : DASH . Term Expr_
-            i += 1
+            consume()
             n.AddKid(ast.New("-"))
         } else {
-            return true, i, n.AddKid(ast.New("e"))        // Expr_ : e .
+            return true, n.AddKid(ast.New("e"))           // Expr_ : e .
         }
         var ok1, ok2 bool
         var r0,r1 ast.Node
-        ok1, i, r0 = Term(i)                              // Expr_ : (PLUS|DASH) Term . Expr_
-        ok2, i, r1 = Expr_(i)                             // Expr_ : (PLUS|DASH) Term Expr_ .
-        return ok1&&ok2, i, n.AddKid(r0).AddKid(r1)
+        ok1, r0 = Term()                              // Expr_ : (PLUS|DASH) Term . Expr_
+        ok2, r1 = Expr_()                             // Expr_ : (PLUS|DASH) Term Expr_ .
+        return ok1&&ok2, n.AddKid(r0).AddKid(r1)
     }
 
-    Term = func(i int) (bool, int, ast.Node) {
+    Term = func() (bool, ast.Node) {
         // Term : Factor Term_
         n := ast.New("Term")
         var ok1, ok2 bool
         var r0,r1 ast.Node
-        ok1, i, r0 = Factor(i)                            // Term : Factor . Term_
-        ok2, i, r1 = Term_(i)                             // Term : Facttor Term_ .
-        return ok1&&ok2, i, n.AddKid(r0).AddKid(r1)
+        ok1, r0 = Factor()                            // Term : Factor . Term_
+        ok2, r1 = Term_()                             // Term : Facttor Term_ .
+        return ok1&&ok2, n.AddKid(r0).AddKid(r1)
     }
 
-    Term_ = func(i int) (bool, int, ast.Node) {
+    Term_ = func() (bool, ast.Node) {
         /* Term_ : STAR Factor Term_
          * Term_ : SLASH Factor Term_
          * Term_ : e (the empty string) */
         n := ast.New("Term_")
-        if i >= len(tokens) {                             // Term_ : e .
-            return true, i, n.AddKid(ast.New("e"))
+        token, closed := peak()
+        if closed {                             // Term_ : e .
+            return true, n.AddKid(ast.New("e"))
         }
-        a := tokens[i].ID()
+        a := token.ID()
         if a == lexer.Tokens["STAR"] {                    // Term_ : STAR . Factor Term_
-            i += 1
+            consume()
             n.AddKid(ast.New("*"))
         } else if a == lexer.Tokens["SLASH"] {            // Term_ : SLASH . Factor Term_
-            i += 1
+            consume()
             n.AddKid(ast.New("/"))
         } else {
-            return true, i, n.AddKid(ast.New("e"))        // Term_ : e .
+            return true, n.AddKid(ast.New("e"))        // Term_ : e .
         }
         var ok1, ok2 bool
         var r0,r1 ast.Node
-        ok1, i, r0 = Factor(i)                            // Term_ : (STAR|SLASH) Factor . Term_
-        ok2, i, r1 = Term_(i)                             // Term_ : (STAR|SLASH) Factor Term_ .
-        return ok1&&ok2, i, n.AddKid(r0).AddKid(r1)
+        ok1, r0 = Factor()                            // Term_ : (STAR|SLASH) Factor . Term_
+        ok2, r1 = Term_()                             // Term_ : (STAR|SLASH) Factor Term_ .
+        return ok1&&ok2, n.AddKid(r0).AddKid(r1)
     }
 
-    Factor = func(i int) (bool, int, ast.Node) {
+    Factor = func() (bool, ast.Node) {
         /* Factor : NUMBER
          * Factor : DASH NUMBER
          * Factor : LPAREN Expr RPAREN */
-        if i >= len(tokens) {
-            fmt.Fprintf(os.Stderr, "Expected a (NUMBER|DASH|LPAREN)")
-            return false, i, ast.New("end of input")
-        }
         n := ast.New("Factor")
-        a := tokens[i].ID()
+        token, closed := peak()
+        if closed {
+            errors = append(errors, "Expected a (NUMBER|DASH|LPAREN) got EOF")
+            return false, ast.New("end of input")
+        }
+        a := token.ID()
         if a == lexer.Tokens["NUMBER"] {                  // Factor : NUMBER .
-            label := tokens[i].Attribute().(*lexer.Attr).StringValue()
-            i += 1
+            consume()
+            label := token.Attribute().(*lexer.Attr).StringValue()
             n.AddKid(ast.New(label))
         } else if a == lexer.Tokens["DASH"] {             // Factor : DASH . NUMBER
-            i += 1
-            a := tokens[i].ID()
-            if a == lexer.Tokens["NUMBER"] {              // Factor : DASH NUMBER .
-                label := tokens[i].Attribute().(*lexer.Attr).StringValue()
-                i += 1
+            consume()
+            token, closed := peak()
+            if closed {
+                errors = append(errors, "expected a NUMBER got EOF")
+                return false, ast.New("end of input")
+            } else if token.ID() == lexer.Tokens["NUMBER"] {              // Factor : DASH NUMBER .
+                consume()
+                label := token.Attribute().(*lexer.Attr).StringValue()
                 n.AddKid(ast.New("-"))
                 n.AddKid(ast.New(label))
             } else {
-                fmt.Fprintln(os.Stderr, "Expected a NUMBER")
-                return false, i, n
+                errors = append(errors, "Expected a NUMBER")
+                return false, n
             }
         } else if a == lexer.Tokens["LPAREN"] {           // Factor : LPAREN . Expr RPAREN
-            i += 1
+            consume()
             var ok bool
             var r0 ast.Node
-              ok, i, r0 = Expr(i)                         // Factor : LPAREN Expr . RPAREN
+            ok, r0 = Expr()                         // Factor : LPAREN Expr . RPAREN
             if !ok {
-                return false, i, n
+                return false, n
             }
-            if i < len(tokens) &&
-               tokens[i].ID() == lexer.Tokens["RPAREN"] { // Factor : LPAREN Expr RPAREN .
-                i += 1
+            token, closed := peak()
+            if closed {
+                errors = append(errors, "Expected an RPAREN found EOF")
+                return false, n
+            } else if token.ID() == lexer.Tokens["RPAREN"] { // Factor : LPAREN Expr RPAREN .
+                consume()
                 n.AddKid(ast.New("(")).AddKid(r0).AddKid(ast.New(")"))
             } else {
-                fmt.Fprintln(os.Stderr, "Expected an RPAREN")
-                return false, i, n
+                errors = append(errors, "Expected an RPAREN")
+                return false, n
             }
         } else {
-            fmt.Fprintln(os.Stderr, "Expected a (NUMBER|DASH|LPAREN)")
-            return false, i, n
+            errors = append(errors, "Expected a (NUMBER|DASH|LPAREN)")
+            return false, n
         }
-        return true, i, n
+        return true, n
     }
 
-    ok, i, root := Expr(0)
-    if !ok || i != len(tokens) {
-        return false, nil
+    ok, root := Expr()
+    if _, closed := peak(); !closed {
+        errors = append(errors, "unconsumed input")
+        for _ = range tokens {}
+        ok = false
     }
-    return true, root
+    if !(<-success) {
+        errors = append(errors, "lexing error (unconsumed input in the lexer)")
+        ok = false
+    }
+    if !ok {
+        return errors, nil
+    }
+    return nil, root
 }
 

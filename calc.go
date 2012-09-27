@@ -10,11 +10,14 @@ func main() {
     if expr, err := ioutil.ReadAll(os.Stdin); err != nil {
         panic("could not read the stdin")
     } else {
-        if ok, ast := parsers.Recursive(expr); ok {
+        if errors, ast := parsers.Recursive(expr); errors == nil {
             fmt.Fprintln(os.Stderr, ast)
             fmt.Println(ast.Dotty())
         } else {
             fmt.Fprintln(os.Stderr, "parsing failed")
+            for _, err := range errors {
+                fmt.Fprintln(os.Stderr, ">", err)
+            }
         }
     }
 }
