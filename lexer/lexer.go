@@ -3,6 +3,7 @@ package lexer
 import "fmt"
 import "strconv"
 import "github.com/timtadh/lex"
+import "github.com/timtadh/expr-calculator/ast"
 
 var rtokens []string = []string{
     "NUMBER", "PLUS", "DASH", "STAR", "SLASH", "LPAREN", "RPAREN" }
@@ -21,8 +22,17 @@ type Token struct {
 }
 
 type Attr struct {
-    value int
+    value ast.EquaCompare
     has_value bool
+}
+
+type Int int
+
+func (self Int) Equals(other ast.EquaCompare) bool {
+    if o, ok := other.(Int); ok {
+        return int(self) == int(o)
+    }
+    return false
 }
 
 func (self *Attr) String() string {
@@ -34,12 +44,12 @@ func (self *Attr) String() string {
     return "<Attribute>"
 }
 
-func (self *Attr) StringValue() string {
-    return fmt.Sprintf("%v", self.value)
+func (self *Attr) Value() interface{} {
+    return self.value
 }
 
-func (self *Attr) Value() int {
-    return self.value
+func (self *Attr) HasValue() bool {
+    return self.has_value
 }
 
 func (self *Token) Name() string {
@@ -62,43 +72,43 @@ var Patterns []*lex.Pattern = []*lex.Pattern{
         if err != nil {
             panic(err)
         }
-        return true, &Token{Tokens["NUMBER"], &Attr{int(i), true}}
+        return true, &Token{Tokens["NUMBER"], &Attr{Int(i), true}}
     },
   },
   &lex.Pattern{
     "\\+",
     func(match []byte)(bool, lex.Token) {
-        return true, &Token{Tokens["PLUS"], &Attr{0, false}}
+        return true, &Token{Tokens["PLUS"], &Attr{Int(0), false}}
     },
   },
   &lex.Pattern{
     "-",
     func(match []byte)(bool, lex.Token) {
-        return true, &Token{Tokens["DASH"], &Attr{0, false}}
+        return true, &Token{Tokens["DASH"], &Attr{Int(0), false}}
     },
   },
   &lex.Pattern{
     "\\*",
     func(match []byte)(bool, lex.Token) {
-        return true, &Token{Tokens["STAR"], &Attr{0, false}}
+        return true, &Token{Tokens["STAR"], &Attr{Int(0), false}}
     },
   },
   &lex.Pattern{
     "/",
     func(match []byte)(bool, lex.Token) {
-        return true, &Token{Tokens["SLASH"], &Attr{0, false}}
+        return true, &Token{Tokens["SLASH"], &Attr{Int(0), false}}
     },
   },
   &lex.Pattern{
     "\\(",
     func(match []byte)(bool, lex.Token) {
-        return true, &Token{Tokens["LPAREN"], &Attr{0, false}}
+        return true, &Token{Tokens["LPAREN"], &Attr{Int(0), false}}
     },
   },
   &lex.Pattern{
     "\\)",
     func(match []byte)(bool, lex.Token) {
-        return true, &Token{Tokens["RPAREN"], &Attr{0, false}}
+        return true, &Token{Tokens["RPAREN"], &Attr{Int(0), false}}
     },
   },
   &lex.Pattern{

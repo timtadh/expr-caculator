@@ -11,7 +11,7 @@ func main() {
         panic("could not read the stdin")
     } else {
         if errors, ast := parsers.Recursive(expr); errors == nil {
-            fmt.Fprintln(os.Stderr, ast)
+            fmt.Fprintln(os.Stderr, parsers.LL1_to_AST(ast))
             fmt.Println(ast.Dotty())
         } else {
             fmt.Fprintln(os.Stderr, "parsing failed")

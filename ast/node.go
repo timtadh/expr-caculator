@@ -3,8 +3,12 @@ package ast
 import "fmt"
 import "strings"
 
+type EquaCompare interface {
+    Equals(EquaCompare) bool
+}
+
 type Node interface {
-    Label() interface{}
+    Label() EquaCompare
     Kids() int
     GetKid(int) Node
     AddKid(Node) Node
@@ -12,44 +16,49 @@ type Node interface {
     Dotty() string
 }
 
-type AstNode struct {
-    label string
+type astNode struct {
+    label EquaCompare
     children []Node
 }
 
-func NewAstNode(label string) *AstNode {
-    return &AstNode{
+type Type string
+
+func (self Type) Equals(other EquaCompare) bool {
+    if o, ok := other.(Type); ok {
+        return string(self) == string(o)
+    }
+    return false
+}
+
+func New(label EquaCompare) Node {
+    return &astNode{
       label:label,
       children:make([]Node, 0),
     }
 }
 
-func New(label string) Node {
-    return NewAstNode(label)
-}
-
-func (self *AstNode) Label() interface{} {
+func (self *astNode) Label() EquaCompare {
     return self.label
 }
 
-func (self *AstNode) Kids() int {
+func (self *astNode) Kids() int {
     return len(self.children)
 }
 
-func (self *AstNode) GetKid(i int) Node {
+func (self *astNode) GetKid(i int) Node {
     return self.children[i]
 }
 
-func (self *AstNode) AddKid(kid Node) Node {
+func (self *astNode) AddKid(kid Node) Node {
     self.children = append(self.children, kid)
     return self
 }
 
-func (self *AstNode) String() string {
+func (self *astNode) String() string {
     return String(self)
 }
 
-func (self *AstNode) Dotty() string {
+func (self *astNode) Dotty() string {
     return Dotty(self)
 }
 
